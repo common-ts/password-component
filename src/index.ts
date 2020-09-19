@@ -78,7 +78,7 @@ export function isEmpty(str: string): boolean {
 export function createError(code: string, field: string, message: string): ErrorMessage {
   return { code, field, message };
 }
-export function validateContact(contact: string, key: string, r: ResourceService, showError?: (msg: string, field?: string) => void, reg?: RegExp): boolean|ErrorMessage[] {
+export function validateContact(contact: string, key: string, r: ResourceService, reg?: RegExp, showError?: (msg: string, field?: string) => void): boolean|ErrorMessage[] {
   if (showError) {
     if (isEmpty(contact)) {
       const msg = r.format(r.value('error_required'), r.value(key));
@@ -142,13 +142,13 @@ export async function validateAndForgotPassword (
     showMessage: (msg: string, field?: string) => void,
     showError: (msg: string, field?: string) => void,
     hideMessage: (field?: string) => void,
-    validateC: (u: string, k: string, r2: ResourceService, showE2?: (msg: string, field?: string) => void, re?: RegExp) => boolean|ErrorMessage[],
+    validateC: (u: string, k: string, r2: ResourceService, re?: RegExp, showE2?: (msg: string, field?: string) => void) => boolean|ErrorMessage[],
     handleError: (err: any) => void,
     reg?: RegExp,
     loading?: LoadingService,
     showCustomError?: (msg: string|ErrorMessage[]) => void) {
   const s = (showCustomError ? null : showError);
-  const results = validateC(contact, key, r, s, reg);
+  const results = validateC(contact, key, r, reg, s);
   if (results === false) {
     return;
   } else if (Array.isArray(results) && results.length > 0){
@@ -162,7 +162,7 @@ export async function validateAndForgotPassword (
   forgotPassword(passwordService, contact, r, showMessage, showError, handleError, loading);
 }
 
-export function validateReset(user: PasswordReset, confirmPassword: string, r: ResourceService, showError?: (msg: string, field?: string) => void, reg?: RegExp): boolean|ErrorMessage[] {
+export function validateReset(user: PasswordReset, confirmPassword: string, r: ResourceService, reg?: RegExp, showError?: (msg: string, field?: string) => void): boolean|ErrorMessage[] {
   if (showError) {
     if (isEmpty(user.username)) {
       const msg = r.format(r.value('error_required'), r.value('username'));
@@ -255,13 +255,13 @@ export async function validateAndResetPassword (
     showMessage: (msg: string, field?: string) => void,
     showError: (msg: string, field?: string) => void,
     hideMessage: (field?: string) => void,
-    validate: (u: PasswordReset, c: string, r2: ResourceService, showE?: (msg: string, field?: string) => void, re?: RegExp) => boolean|ErrorMessage[],
+    validate: (u: PasswordReset, c: string, r2: ResourceService, re?: RegExp, showE?: (msg: string, field?: string) => void) => boolean|ErrorMessage[],
     handleError: (err: any) => void,
     reg?: RegExp,
     loading?: LoadingService,
     showCustomError?: (msg: string|ErrorMessage[]) => void) {
   const s = (showCustomError ? null : showError);
-  const results = validate(user, confirmPassword, r, s, reg);
+  const results = validate(user, confirmPassword, r, reg, s);
   if (results === false) {
     return;
   } else if (Array.isArray(results) && results.length > 0){
@@ -275,7 +275,7 @@ export async function validateAndResetPassword (
   resetPassword(passwordService, user, r, showMessage, showError, handleError, loading);
 }
 
-export function validateChange(user: PasswordChange, confirmPassword: string, r: ResourceService, showError?: (msg: string, field?: string) => void, reg?: RegExp): boolean|ErrorMessage[] {
+export function validateChange(user: PasswordChange, confirmPassword: string, r: ResourceService, reg?: RegExp, showError?: (msg: string, field?: string) => void): boolean|ErrorMessage[] {
   if (showError) {
     if (isEmpty(user.username)) {
       const msg = r.format(r.value('error_required'), r.value('username'));
@@ -384,13 +384,13 @@ export async function validateAndChangePassword (
     showMessage: (msg: string, field?: string) => void,
     showError: (msg: string, field?: string) => void,
     hideMessage: (field?: string) => void,
-    validate: (u: PasswordChange, c: string, r2: ResourceService, showE?: (msg: string, field?: string) => void, re?: RegExp) => boolean|ErrorMessage[],
+    validate: (u: PasswordChange, c: string, r2: ResourceService, re?: RegExp, showE?: (msg: string, field?: string) => void) => boolean|ErrorMessage[],
     handleError: (err: any) => void,
     reg?: RegExp,
     loading?: LoadingService,
     showCustomError?: (msg: string|ErrorMessage[]) => void) {
   const s = (showCustomError ? null : showError);
-  const results = validate(user, confirmPassword, r, s, reg);
+  const results = validate(user, confirmPassword, r, reg, s);
   if (results === false) {
     return;
   } else if (Array.isArray(results) && results.length > 0){
