@@ -1,6 +1,6 @@
 {
   "name": "password-component",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "description": "Password Component",
   "main": "./lib/index.js",
   "types": "./src/index.ts",

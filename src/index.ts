@@ -41,21 +41,21 @@ export interface HttpRequest {
 }
 
 export class PasswordWebClient implements PasswordService {
-  constructor(protected http: HttpRequest, protected serviceUrl: string) {
+  constructor(protected http: HttpRequest, protected url: string) {
+    this.forgotPassword = this.forgotPassword.bind(this);
+    this.resetPassword = this.resetPassword.bind(this);
+    this.changePassword = this.changePassword.bind(this);
   }
-
   forgotPassword(contact: string): Promise<boolean> {
-    const url = this.serviceUrl + '/forgot/' + contact;
+    const url = this.url + '/forgot/' + contact;
     return this.http.get<boolean>(url);
   }
-
   resetPassword(password: PasswordReset): Promise<boolean|number> {
-    const url = this.serviceUrl + '/reset';
+    const url = this.url + '/reset';
     return this.http.post<boolean>(url, password);
   }
-
   changePassword(pass: PasswordChange): Promise<boolean|number> {
-    const url = this.serviceUrl + '/change';
+    const url = this.url + '/change';
     return this.http.put<boolean>(url, pass);
   }
 }
@@ -92,22 +92,22 @@ export function validateContact(contact: string, key: string, r: ResourceService
     }
     return true;
   } else {
-    const errors = [];
+    const errs: ErrorMessage[] = [];
     if (isEmpty(contact)) {
       const msg = r.format(r.value('error_required'), r.value(key));
       const e = createError('required', 'contact', msg);
-      errors.push(e);
+      errs.push(e);
     }
     if (reg && !reg.test(contact)) {
       const msg = r.value('error_contact_exp');
       const e = createError('exp', 'contact', msg);
-      errors.push(e);
+      errs.push(e);
     }
-    return errors;
+    return errs;
   }
 }
 export async function forgotPassword (
-    passwordService: PasswordService,
+    forgot: (contact: string) => Promise<boolean>,
     contact: string, r: ResourceService,
     showMessage: (msg: string, field?: string) => void,
     showError: (msg: string, field?: string) => void,
@@ -117,7 +117,7 @@ export async function forgotPassword (
     if (loading) {
       loading.showLoading();
     }
-    const result = await passwordService.forgotPassword(contact);
+    const result = await forgot(contact);
     if (result) {
       const msg =  r.value('success_forgot_password');
       showMessage(msg, 'contact');
@@ -135,7 +135,7 @@ export async function forgotPassword (
   }
 }
 export async function validateAndForgotPassword (
-    passwordService: PasswordService,
+    forgot: (contact: string) => Promise<boolean>,
     contact: string,
     key: string,
     r: ResourceService,
@@ -159,7 +159,7 @@ export async function validateAndForgotPassword (
   } else {
     hideMessage();
   }
-  forgotPassword(passwordService, contact, r, showMessage, showError, handleError, loading);
+  forgotPassword(forgot, contact, r, showMessage, showError, handleError, loading);
 }
 
 export function validateReset(user: PasswordReset, confirmPassword: string, r: ResourceService, reg?: RegExp, showError?: (msg: string, field?: string) => void): boolean|ErrorMessage[] {
@@ -189,38 +189,38 @@ export function validateReset(user: PasswordReset, confirmPassword: string, r: R
     }
     return true;
   } else {
-    const errors = [];
+    const errs: ErrorMessage[] = [];
     if (isEmpty(user.username)) {
       const msg = r.format(r.value('error_required'), r.value('username'));
       const e = createError('required', 'username', msg);
-      errors.push(e);
+      errs.push(e);
     }
     if (isEmpty(user.passcode)) {
       const msg = r.format(r.value('error_required'), r.value('passcode'));
       const e = createError('required', 'passcode', msg);
-      errors.push(e);
+      errs.push(e);
     }
     if (isEmpty(user.password)) {
       const msg = r.format(r.value('error_required'), r.value('new_password'));
       const e = createError('required', 'password', msg);
-      errors.push(e);
+      errs.push(e);
     }
     if (reg && !reg.test(user.password)) {
       const msg = r.format(r.value('error_password_exp'), r.value('new_password'));
       const e = createError('exp', 'password', msg);
-      errors.push(e);
+      errs.push(e);
     }
     if (user.password !== confirmPassword) {
       const msg = r.value('error_confirm_password');
       const e = createError('eq', 'confirmPassword', msg);
       e.param = 'password';
-      errors.push(e);
+      errs.push(e);
     }
-    return errors;
+    return errs;
   }
 }
 export async function resetPassword (
-    passwordService: PasswordService,
+    reset: (pass: PasswordReset) => Promise<boolean|number>,
     user: PasswordReset, r: ResourceService,
     showMessage: (msg: string, field?: string) => void,
     showError: (msg: string, field?: string) => void,
@@ -230,7 +230,7 @@ export async function resetPassword (
     if (loading) {
       loading.showLoading();
     }
-    const success = await passwordService.resetPassword(user);
+    const success = await reset(user);
     if (success === true || success === 1) {
       const msg = r.value('success_reset_password');
       showMessage(msg);
@@ -248,7 +248,7 @@ export async function resetPassword (
   }
 }
 export async function validateAndResetPassword (
-    passwordService: PasswordService,
+    reset: (pass: PasswordReset) => Promise<boolean|number>,
     user: PasswordReset,
     confirmPassword: string,
     r: ResourceService,
@@ -264,7 +264,7 @@ export async function validateAndResetPassword (
   const results = validate(user, confirmPassword, r, reg, s);
   if (results === false) {
     return;
-  } else if (Array.isArray(results) && results.length > 0){
+  } else if (Array.isArray(results) && results.length > 0) {
     if (showCustomError) {
       showCustomError(results);
     }
@@ -272,7 +272,7 @@ export async function validateAndResetPassword (
   } else {
     hideMessage();
   }
-  resetPassword(passwordService, user, r, showMessage, showError, handleError, loading);
+  resetPassword(reset, user, r, showMessage, showError, handleError, loading);
 }
 
 export function validateChange(user: PasswordChange, confirmPassword: string, r: ResourceService, reg?: RegExp, showError?: (msg: string, field?: string) => void): boolean|ErrorMessage[] {
@@ -309,43 +309,43 @@ export function validateChange(user: PasswordChange, confirmPassword: string, r:
     }
     return true;
   } else {
-    const errors = [];
+    const errs: ErrorMessage[] = [];
     if (isEmpty(user.username)) {
       const msg = r.format(r.value('error_required'), r.value('username'));
       const e = createError('required', 'username', msg);
-      errors.push(e);
+      errs.push(e);
     }
     if (isEmpty(user.password)) {
       const msg = r.format(r.value('error_required'), r.value('new_password'));
       const e = createError('required', 'password', msg);
-      errors.push(e);
+      errs.push(e);
     }
     if (reg && !reg.test(user.password)) {
       const msg = r.format(r.value('error_password_exp'), r.value('new_password'));
       const e = createError('exp', 'password', msg);
-      errors.push(e);
+      errs.push(e);
     }
     if (isEmpty(user.currentPassword)) {
       const msg = r.format(r.value('error_required'), r.value('current_password'));
       const e = createError('required', 'currentPassword', msg);
-      errors.push(e);
+      errs.push(e);
     }
     if (user.step && user.step >= 1 && isEmpty(user.passcode)) {
       const msg = r.format(r.value('error_required'), r.value('passcode'));
       const e = createError('required', 'passcode', msg);
-      errors.push(e);
+      errs.push(e);
     }
     if (user.password !== confirmPassword) {
       const msg = r.value('error_confirm_password');
       const e = createError('eq', 'confirmPassword', msg);
       e.param = 'password';
-      errors.push(e);
+      errs.push(e);
     }
-    return errors;
+    return errs;
   }
 }
 export async function changePassword (
-    passwordService: PasswordService,
+    change: (pass: PasswordChange) => Promise<boolean|number>,
     user: PasswordChange, r: ResourceService,
     showMessage: (msg: string, field?: string) => void,
     showError: (msg: string, field?: string) => void,
@@ -355,7 +355,7 @@ export async function changePassword (
     if (loading) {
       loading.showLoading();
     }
-    const result = await passwordService.changePassword(user);
+    const result = await change(user);
     if (result === 2) {
       const msg = r.value('success_send_passcode_change_password');
       showMessage(msg);
@@ -377,7 +377,7 @@ export async function changePassword (
   }
 }
 export async function validateAndChangePassword (
-    passwordService: PasswordService,
+    change: (pass: PasswordChange) => Promise<boolean|number>,
     user: PasswordChange,
     confirmPassword: string,
     r: ResourceService,
@@ -401,5 +401,5 @@ export async function validateAndChangePassword (
   } else {
     hideMessage();
   }
-  changePassword(passwordService, user, r, showMessage, showError, handleError, loading);
+  changePassword(change, user, r, showMessage, showError, handleError, loading);
 }
